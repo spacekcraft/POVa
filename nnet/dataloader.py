@@ -11,7 +11,11 @@ from torchvision import transforms
 from tqdm import tqdm
 
 
-def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, transform: transforms = None) -> DataLoader:
+def collate_variable_length(batch):
+    imgs, labels = zip(*batch)
+    return imgs, labels
+
+def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, transform: transforms = None, target_transform: transforms = None) -> DataLoader:
     """Creates dataloader and dataset from given parameters.
 
     Args:
@@ -27,18 +31,28 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
     """
     if verbose:
         print("Initializing PeroDataset...")
-    dataset = PeroDataset(annotation_path=annotation_path,
-                          img_path=img_path, transform=transform, verbose=verbose)
+    dataset = PeroDataset(
+        annotation_path=annotation_path,
+        img_path=img_path,
+        transform=transform,
+        target_transform=target_transform,
+        verbose=verbose
+    )
     if verbose:
         print("Creating dataloader...")
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_variable_length
+    )
     if verbose:
         print("Done")
     return loader
 
 
 class PeroDataset(Dataset):
-    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, verbose: bool = True):
+    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True):
         """Init dataset.
 
         Args:
@@ -62,6 +76,7 @@ class PeroDataset(Dataset):
         self._keys = list(self._annotation.keys())
         self._img_path = img_path
         self._transform = transform
+        self._target_transform = target_transform
 
         if self._verbose:
             print(
@@ -86,7 +101,7 @@ class PeroDataset(Dataset):
                     splitted = line.split(" ", maxsplit=1)
                     annotation[splitted[0]] = splitted[-1]
                 return annotation
-        except Exception as e:
+        except FileNotFoundError as e:
             raise e
 
     def __len__(self) -> int:
@@ -109,4 +124,7 @@ class PeroDataset(Dataset):
         image = read_image(f"{self._img_path}/{self._keys[idx]}")
         if self._transform:
             image = self._transform(image)
-        return image, self._annotation[self._keys[idx]]
+        annotation = self._annotation[self._keys[idx]]
+        if self._target_transform:
+            annotation = self._target_transform(annotation)
+        return image, annotation
