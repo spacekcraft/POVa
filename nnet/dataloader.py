@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 def collate_variable_length(batch):
     imgs, labels = zip(*batch)
-    return imgs, labels
+    return th.stack(imgs), labels
 
 def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, transform: transforms = None, target_transform: transforms = None) -> DataLoader:
     """Creates dataloader and dataset from given parameters.

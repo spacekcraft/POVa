@@ -13,6 +13,10 @@ from nnet.settings import (
     NUMBER_OF_CLASSES
 )
 
+PERO_DATASET_PATH = "./pero/lines"
+PERO_ANNOTATIONS_PATH = "./pero/train.easy"
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Script for training the model.')
     parser.add_argument('--batch-size', '-b', default=64, type=int)
