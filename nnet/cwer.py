@@ -33,13 +33,13 @@ def distance(hyp,ref):
 				dist[i][j]=min(subs,inse,dele)
 			else:
 				dist[i][j] = dist[i-1][j-1]
-				
+
 	return dist[len(ref)][len(hyp)]
-	
+
 
 def getCer(hyp,ref):
 
-	"""Compute percentage of characters in the reference word 
+	"""Compute percentage of characters in the reference word
 	   that was incorrectly predicted in the OCR output
     Args:
 		hyp (string): hypothesis string (OCR)
@@ -55,7 +55,7 @@ def getCer(hyp,ref):
 
 def getWer(hyp,ref):
 
-	"""Compute percentage of words in the reference text 
+	"""Compute percentage of words in the reference text
 	   that was incorrectly predicted in the OCR output
     Args:
 		hyp (list/string):  hypothesis string/list (OCR)

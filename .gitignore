@@ -131,3 +131,5 @@ dmypy.json
 *.jpg
 pero/
 .vscode/
+
+crnn.pth
