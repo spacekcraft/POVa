@@ -24,7 +24,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Script for training the model.')
     parser.add_argument('--batch-size', '-b', default=64, type=int)
     parser.add_argument('--epochs', '-e', default=1000, type=int)
-    parser.add_argument('--learning-rate', '-l', default=1e-3, type=float)
+    parser.add_argument('--learning-rate', '-lr', default=1e-3, type=float)
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--resume', '-r', type=str, default=None, help="Path to the resumed checkpoitn")
     parser.add_argument('--train-annotation', '-ta', type=str, help="Path to the annotation file for train data")

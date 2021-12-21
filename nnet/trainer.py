@@ -37,8 +37,8 @@ class Trainer(object):
 
         from torch.utils.tensorboard import SummaryWriter
         self._writer = SummaryWriter(log_dir = tensorboard_dir+'_'+comment)
-        if self._verbose: print(f"Tensorboard is set as: {self._writer}")
-        self.logger.info(f"Tensorboard is set as: {self._writer}")
+        if self._verbose: print(f"Tensorboard is set as: {tensorboard_dir+'_'+comment}")
+        self.logger.info(f"Tensorboard is set as: {tensorboard_dir+'_'+comment}")
 
 
         self._cur_epoch = 0
@@ -54,7 +54,7 @@ class Trainer(object):
             if self._verbose: print(f"Model and optimizer set. LR: {learning_rate}")
             self.logger.info(f"Model and optimizer set. LR: {learning_rate}")
 
-        self._model.to(self._device)
+        self._model = self._model.to(self._device)
         self._loss_fn = th.nn.CTCLoss(zero_infinity=True)
         if self._verbose: print(f"Use loss_fn: CTCLoss\nComplete")
         self.logger.info(f"Use loss_fn: CTCLoss")
@@ -72,7 +72,6 @@ class Trainer(object):
             resume, cur_epoch))
         # load nnet
         model.load_state_dict(cpt["model_state_dict"])
-        model = model.to(self._device)
         return cur_epoch, model, optimizer(optimizer_kwargs, state=cpt["optim_state_dict"])
 
     def _save_checkpoint(self, cur_epoch:int, model:th.nn.Module, optimizer:th.optim, best:bool=True, apendix:str = ""):
@@ -104,6 +103,9 @@ class Trainer(object):
         sum_loss = 0
         
         for X, y in tqdm(dataloader) if self._verbose else dataloader:
+            X = X.to(self._device)
+           
+            #y.to(self._device)
             # Compute prediction and loss
             pred = self._model(X)
             t, l = self._converter.encode(y)
@@ -131,6 +133,8 @@ class Trainer(object):
 
         with th.no_grad():
             for X, y in tqdm(dataloader) if self._verbose else dataloader:
+                X = X.to(self._device)
+                #y.to(self._device)
                 pred = self._model(X)
                 t, l = self._converter.encode(y)
 
@@ -198,6 +202,7 @@ class Trainer(object):
         # avoid alloc memory from gpu0
         
         if self.gpuid:
+            print("DBG")
             with th.cuda.device(self.gpuid[0]):
                 self._run(train_loader=train_loader, dev_loader=dev_loader, num_epochs=num_epochs)
         else:
