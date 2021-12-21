@@ -5,7 +5,7 @@ from torchvision.transforms import Lambda, Resize, Grayscale
 from torch.autograd import Variable
 
 from models.crnn import CRNN
-from nnet.dataloader import make_dataloader
+from nnet.dataloader import make_dataloader, make_lmdb_dataloader
 from nnet.utils import StrLabelConverter
 from nnet.cwer import getCer, getWer
 from nnet.settings import (
@@ -16,6 +16,8 @@ from nnet.settings import (
     NUMBER_OF_CLASSES,
     TRAINING_PROGRESS_LOG_INTERVAL,
     SAVE_MODEL_PATH,
+    LMDB_DATA_OUTPUT_PATH_TRAIN,
+    LMDB_DATA_OUTPUT_PATH_VALID
 )
 
 
@@ -26,38 +28,57 @@ def parse_args():
     parser.add_argument('--learning-rate', '-l', default=1e-3, type=float)
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--pretrained', '-p', action='store_true')
+    parser.add_argument('--lmdb', '-d', action='store_true')
     args = parser.parse_args()
     return args
 
-def get_dataloaders(batch_size, image_shape, verbose=False):
+
+def get_dataloaders(batch_size, image_shape, use_lmdb=False, verbose=False):
     nchanels, image_h, image_w = image_shape
 
-    # converter = StrLabelConverter(ALPHABET)
-    train_dataloader = make_dataloader(
-        PERO_ANNOTATIONS_PATH_TRAIN,
-        PERO_DATASET_PATH,
-        batch_size,
-        shuffle=True,
-        verbose=verbose,
-        transform=torch.nn.Sequential(
-            Resize((image_h, image_w)),
-            Grayscale(nchanels),
-        ),
-        # target_transform=Lambda(lambda y: converter.encode(y)) # TODO try to use it this way
-    )
 
-    val_dataloader = make_dataloader(
-        PERO_ANNOTATIONS_PATH_VAL,
-        PERO_DATASET_PATH,
-        batch_size,
-        shuffle=True,
-        verbose=verbose,
-        transform=torch.nn.Sequential(
+    if use_lmdb:
+        transform = Resize((image_h, image_w))
+        train_dataloader = make_lmdb_dataloader(
+            LMDB_DATA_OUTPUT_PATH_TRAIN,
+            batch_size,
+            shuffle=True,
+            transform=transform,
+            verbose=verbose,
+        )
+        val_dataloader = make_lmdb_dataloader(
+            LMDB_DATA_OUTPUT_PATH_VALID,
+            batch_size,
+            shuffle=True,
+            transform=transform,
+            verbose=verbose,
+        )
+
+    else:
+        img_tranforms = torch.nn.Sequential(
             Resize((image_h, image_w)),
             Grayscale(nchanels),
-        ),
-        # target_transform=Lambda(lambda y: converter.encode(y)) # TODO
-    )
+        )
+        # converter = StrLabelConverter(ALPHABET)
+        train_dataloader = make_dataloader(
+            PERO_ANNOTATIONS_PATH_TRAIN,
+            PERO_DATASET_PATH,
+            batch_size,
+            shuffle=True,
+            verbose=verbose,
+            transform=img_tranforms
+            # target_transform=Lambda(lambda y: converter.encode(y)) # TODO try to use it this way
+        )
+
+        val_dataloader = make_dataloader(
+            PERO_ANNOTATIONS_PATH_VAL,
+            PERO_DATASET_PATH,
+            batch_size,
+            shuffle=True,
+            verbose=verbose,
+            transform=img_tranforms,
+            # target_transform=Lambda(lambda y: converter.encode(y)) # TODO
+        )
 
     return train_dataloader, val_dataloader
 
@@ -127,7 +148,8 @@ def main():
     train_dataloader, val_dataloader = get_dataloaders(
         args.batch_size,
         (nchanels, image_h, image_w),
-        args.verbose
+        use_lmdb=args.lmdb,
+        verbose=args.verbose,
     )
 
     model = model_init(image_h, nchanels, NUMBER_OF_CLASSES, 256, pretrained=args.pretrained)
@@ -138,7 +160,6 @@ def main():
         print(f"Epoch {t+1}\n-------------------------------")
         train_loop(train_dataloader, model, loss_fn, optimizer)
         validation_loop(t, train_dataloader, model)
-        break
 
     torch.save(model, SAVE_MODEL_PATH)
 
