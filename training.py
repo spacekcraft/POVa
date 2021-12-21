@@ -5,8 +5,8 @@ from torchvision.transforms import Lambda, Resize, Grayscale
 from torch.autograd import Variable
 
 from models.crnn import CRNN
-from nnet.dataloader import make_dataloader
 from nnet.trainer import Trainer
+from nnet.dataloader import make_dataloader, make_lmdb_dataloader
 from nnet.utils import StrLabelConverter
 from nnet.cwer import getCer, getWer
 from nnet.settings import (
@@ -17,6 +17,8 @@ from nnet.settings import (
     NUMBER_OF_CLASSES,
     TRAINING_PROGRESS_LOG_INTERVAL,
     SAVE_MODEL_PATH,
+    LMDB_DATA_OUTPUT_PATH_TRAIN,
+    LMDB_DATA_OUTPUT_PATH_VALID
 )
 
 
@@ -33,10 +35,13 @@ def parse_args():
     parser.add_argument('--checkpoint', '-ch', type=str, help="Path to the checkpoint dir")
     parser.add_argument('--comment', '-cm', type=str, default = "", help="Experiment comment")
     parser.add_argument('--run', '-rn', type=str, default = "./runs/run", help="Run")
+    parser.add_argument('--lmdb', '-d', action='store_true')
     args = parser.parse_args()
     return args
 
-def get_dataloaders(train_annotation, validate_annotation, image_path, batch_size, image_shape, verbose=False):
+
+
+def get_dataloaders(train_annotation, validate_annotation, image_path, batch_size, image_shape, use_lmdb=False, verbose=False):
     nchanels, image_h, image_w = image_shape
 
     # converter = StrLabelConverter(ALPHABET)
@@ -62,9 +67,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
         transform=torch.nn.Sequential(
             Resize((image_h, image_w)),
             Grayscale(nchanels),
-        ),
-        # target_transform=Lambda(lambda y: converter.encode(y)) # TODO
-    )
+        )
 
     return train_dataloader, val_dataloader
 
@@ -137,6 +140,7 @@ def main():
         image_path = args.image_path,
         batch_size = args.batch_size,
         image_shape = (nchanels, image_h, image_w),
+        use_lmdb=args.lmdb,
         verbose = args.verbose
     )
 
@@ -155,7 +159,6 @@ def main():
         train_loop(train_dataloader, model, loss_fn, optimizer)
         validation_loop(t, train_dataloader, model)
         
-
     torch.save(model, SAVE_MODEL_PATH)
 
     print("Training has finished")

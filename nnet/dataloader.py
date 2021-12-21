@@ -3,12 +3,17 @@
 """Functions and dataset class for creating dataset and dataloader for Pero dataset.
 """
 
+import io
 from typing import Dict, Tuple
+
+import lmdb
 import torch as th
+
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
 from torchvision import transforms
 from tqdm import tqdm
+from PIL import Image
 
 
 def collate_variable_length(batch):
@@ -128,3 +133,78 @@ class PeroDataset(Dataset):
         if self._target_transform:
             annotation = self._target_transform(annotation)
         return image, annotation
+
+def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_transform = None, shuffle=False, verbose=False):
+    if verbose:
+        print("Initializing PeroDataset...")
+    dataset = PeroLmdbDataset(
+        lmdb_data_path,
+        transform=transform,
+        target_transform=target_transform,
+    )
+    if verbose:
+        print("Creating dataloader...")
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_variable_length
+    )
+    if verbose:
+        print("Done")
+
+    return loader
+
+class PeroLmdbDataset(Dataset):
+
+    def __init__(self, root=None, transform=None, target_transform=None):
+        self.env = lmdb.open(
+            root,
+            max_readers=1,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False)
+
+        if not self.env:
+            print('cannot creat lmdb from %s' % (root))
+            sys.exit(0)
+
+        with self.env.begin(write=False) as txn:
+            nSamples = int(txn.get('num-samples'.encode('utf-8')))
+            self.nSamples = nSamples
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return self.nSamples
+
+    def __getitem__(self, index):
+        assert index <= len(self), 'index range error'
+        index += 1
+        with self.env.begin(write=False) as txn:
+            img_key = 'image-%09d' % index
+            imgbuf = txn.get(img_key.encode('utf-8'))
+
+            buf = io.BytesIO()
+            buf.write(imgbuf)
+            buf.seek(0)
+            try:
+                img = Image.open(buf).convert('L')
+                transform = transforms.ToTensor()
+                img = transform(img)
+            except IOError:
+                print('Corrupted image for %d' % index)
+                return self[index + 1]
+
+            if self.transform is not None:
+                img = self.transform(img)
+
+            label_key = 'label-%09d' % index
+            label = txn.get(label_key.encode('utf-8')).decode('utf-8')
+
+            if self.target_transform is not None:
+                label = self.target_transform(label)
+
+        return (img, label)

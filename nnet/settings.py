@@ -11,3 +11,6 @@ ALPHABET = string.ascii_letters + string.digits + string.punctuation + ' °§ě�
 NUMBER_OF_CLASSES = len(ALPHABET)
 
 TRAINING_PROGRESS_LOG_INTERVAL = 100
+
+LMDB_DATA_OUTPUT_PATH_TRAIN = '/tmp/lmdb_dataset_store/train'
+LMDB_DATA_OUTPUT_PATH_VALID = '/tmp/lmdb_dataset_store/valid'
