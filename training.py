@@ -6,6 +6,7 @@ from torch.autograd import Variable
 
 from models.crnn import CRNN
 from nnet.dataloader import make_dataloader
+from nnet.trainer import Trainer
 from nnet.utils import StrLabelConverter
 from nnet.cwer import getCer, getWer
 from nnet.settings import (
@@ -25,17 +26,23 @@ def parse_args():
     parser.add_argument('--epochs', '-e', default=1000, type=int)
     parser.add_argument('--learning-rate', '-l', default=1e-3, type=float)
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--pretrained', '-p', action='store_true')
+    parser.add_argument('--resume', '-r', type=str, default=None, help="Path to the resumed checkpoitn")
+    parser.add_argument('--train-annotation', '-ta', type=str, help="Path to the annotation file for train data")
+    parser.add_argument('--validate-annotation', '-va', type=str, help="Path to the annotation file for validation data")
+    parser.add_argument('--image-path', '-ip', type=str, help="Path to the images")
+    parser.add_argument('--checkpoint', '-ch', type=str, help="Path to the checkpoint dir")
+    parser.add_argument('--comment', '-cm', type=str, default = "", help="Experiment comment")
+    parser.add_argument('--run', '-rn', type=str, default = "./runs/run", help="Run")
     args = parser.parse_args()
     return args
 
-def get_dataloaders(batch_size, image_shape, verbose=False):
+def get_dataloaders(train_annotation, validate_annotation, image_path, batch_size, image_shape, verbose=False):
     nchanels, image_h, image_w = image_shape
 
     # converter = StrLabelConverter(ALPHABET)
     train_dataloader = make_dataloader(
-        PERO_ANNOTATIONS_PATH_TRAIN,
-        PERO_DATASET_PATH,
+        train_annotation,
+        image_path,
         batch_size,
         shuffle=True,
         verbose=verbose,
@@ -47,8 +54,8 @@ def get_dataloaders(batch_size, image_shape, verbose=False):
     )
 
     val_dataloader = make_dataloader(
-        PERO_ANNOTATIONS_PATH_VAL,
-        PERO_DATASET_PATH,
+        validate_annotation,
+        image_path,
         batch_size,
         shuffle=True,
         verbose=verbose,
@@ -125,12 +132,21 @@ def main():
 
     nchanels, image_h, image_w = 1, 32, 512
     train_dataloader, val_dataloader = get_dataloaders(
-        args.batch_size,
-        (nchanels, image_h, image_w),
-        args.verbose
+        train_annotation = args.train_annotation,
+        validate_annotation = args.validate_annotation,
+        image_path = args.image_path,
+        batch_size = args.batch_size,
+        image_shape = (nchanels, image_h, image_w),
+        verbose = args.verbose
     )
 
-    model = model_init(image_h, nchanels, NUMBER_OF_CLASSES, 256, pretrained=args.pretrained)
+    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
+    
+    trainer = Trainer(model = model, checkpoint = args.checkpoint, tensorboard_dir=args.run, comment=args.comment, alphabet=ALPHABET, learning_rate=args.learning_rate, verbose = args.verbose, resume_path=args.resume)
+    trainer.run(train_dataloader, val_dataloader, num_epochs=args.epochs)
+
+    return
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     loss_fn = torch.nn.CTCLoss(zero_infinity=True)
 
@@ -138,7 +154,7 @@ def main():
         print(f"Epoch {t+1}\n-------------------------------")
         train_loop(train_dataloader, model, loss_fn, optimizer)
         validation_loop(t, train_dataloader, model)
-        break
+        
 
     torch.save(model, SAVE_MODEL_PATH)
 

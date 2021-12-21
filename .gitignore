@@ -133,3 +133,6 @@ pero/
 .vscode/
 
 crnn.pth
+runs/
+exp/
+expscripts/
