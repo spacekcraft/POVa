@@ -44,32 +44,47 @@ def parse_args():
 def get_dataloaders(train_annotation, validate_annotation, image_path, batch_size, image_shape, use_lmdb=False, verbose=False):
     nchanels, image_h, image_w = image_shape
 
-    # converter = StrLabelConverter(ALPHABET)
-    train_dataloader = make_dataloader(
-        train_annotation,
-        image_path,
-        batch_size,
-        shuffle=True,
-        verbose=verbose,
-        transform=torch.nn.Sequential(
-            Resize((image_h, image_w)),
-            Grayscale(nchanels),
-        ),
-        # target_transform=Lambda(lambda y: converter.encode(y)) # TODO try to use it this way
-    )
-
-    val_dataloader = make_dataloader(
-        validate_annotation,
-        image_path,
-        batch_size,
-        shuffle=True,
-        verbose=verbose,
-        transform=torch.nn.Sequential(
+    if use_lmdb:
+        transform = Resize((image_h, image_w))
+        train_dataloader = make_lmdb_dataloader(
+            LMDB_DATA_OUTPUT_PATH_TRAIN,
+            batch_size,
+            shuffle=True,
+            transform=transform,
+            verbose=verbose,
+        )
+        val_dataloader = make_lmdb_dataloader(
+            LMDB_DATA_OUTPUT_PATH_VALID,
+            batch_size,
+            shuffle=True,
+            transform=transform,
+            verbose=verbose,
+        )
+    else:
+        img_tranforms = torch.nn.Sequential(
             Resize((image_h, image_w)),
             Grayscale(nchanels),
         )
+        # converter = StrLabelConverter(ALPHABET)
+        train_dataloader = make_dataloader(
+            train_annotation,
+            image_path,
+            batch_size,
+            shuffle=True,
+            verbose=verbose,
+            transform=img_tranforms
+        )
 
-    return train_dataloader, val_dataloader
+        val_dataloader = make_dataloader(
+            validate_annotation,
+            image_path,
+            batch_size,
+            shuffle=True,
+            verbose=verbose,
+            transform=img_tranforms
+        )
+
+        return train_dataloader, val_dataloader
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     converter = StrLabelConverter(ALPHABET)
@@ -150,19 +165,6 @@ def main():
     trainer.run(train_dataloader, val_dataloader, num_epochs=args.epochs)
 
     return
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-    loss_fn = torch.nn.CTCLoss(zero_infinity=True)
-
-    for t in range(args.epochs):
-        print(f"Epoch {t+1}\n-------------------------------")
-        train_loop(train_dataloader, model, loss_fn, optimizer)
-        validation_loop(t, train_dataloader, model)
-        
-    torch.save(model, SAVE_MODEL_PATH)
-
-    print("Training has finished")
-
 
 if __name__ == "__main__":
     main()
