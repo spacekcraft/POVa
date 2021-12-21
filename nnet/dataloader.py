@@ -82,10 +82,24 @@ class PeroDataset(Dataset):
         self._img_path = img_path
         self._transform = transform
         self._target_transform = target_transform
+        self._alphabet = self._load_alphabet()
 
         if self._verbose:
             print(
                 f"PeroDataset: Loaded annotations for {len(self)} images on path {img_path}.")
+
+    def _load_alphabet(self) -> str:
+        """Get unique chars in anotation.
+
+        Returns:
+            str: Dataset alphabet.
+        """
+        values=list(self._annotation.values())
+        unique = set()
+        for label in values:
+            unique.update(set(label))
+        	
+        return ''.join(sorted(unique))
 
     def _load_annotation(self, path: str) -> Dict:
         """Load annotation file.
