@@ -99,7 +99,7 @@ class PeroDataset(Dataset):
                 annotation = dict()
                 for line in tqdm(f.readlines()) if self._verbose else f.readlines():
                     splitted = line.split(" ", maxsplit=1)
-                    annotation[splitted[0]] = splitted[-1]
+                    annotation[splitted[0]] = splitted[-1].strip('\n')
                 return annotation
         except FileNotFoundError as e:
             raise e

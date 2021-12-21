@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -19,11 +20,9 @@ class BidirectionalLSTM(nn.Module):
 
         return output
 
-
-class CRNN(nn.Module):
-
-    def __init__(self, imgH, nc, nclass, nh, n_rnn=2, leakyRelu=False):
-        super(CRNN, self).__init__()
+class CustomCNN(nn.Module):
+    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
+        super().__init__()
         assert imgH % 16 == 0, 'imgH has to be a multiple of 16'
 
         ks = [3, 3, 3, 3, 3, 3, 2]
@@ -59,16 +58,25 @@ class CRNN(nn.Module):
         cnn.add_module('pooling{0}'.format(3),
                        nn.MaxPool2d((2, 2), (2, 1), (0, 1)))  # 512x2x16
         convRelu(6, True)  # 512x1x16
-
         self.cnn = cnn
+
+    def forward(self, input):
+        return self.cnn(input)
+
+class CRNN(nn.Module):
+
+    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
+        super(CRNN, self).__init__()
+
+        self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
         self.rnn = nn.Sequential(
             BidirectionalLSTM(512, nh, nh),
-            BidirectionalLSTM(nh, nh, nclass))
-
+            BidirectionalLSTM(nh, nh, nclass)
+        )
 
     def forward(self, input):
         # conv features
-        conv = self.cnn(input)
+        conv = self.cnn(input.float())
         b, c, h, w = conv.size()
         assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)

@@ -1,7 +1,8 @@
 import argparse
 
 import torch
-from torchvision.transforms import Lambda, Resize
+from torchvision.transforms import Lambda, Resize, Grayscale
+from torch.autograd import Variable
 
 from models.crnn import CRNN
 from nnet.dataloader import make_dataloader
@@ -12,9 +13,6 @@ from nnet.settings import (
     ALPHABET,
     NUMBER_OF_CLASSES
 )
-
-PERO_DATASET_PATH = "./pero/lines"
-PERO_ANNOTATIONS_PATH = "./pero/train.easy"
 
 
 def parse_args():
@@ -28,11 +26,16 @@ def parse_args():
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
+    converter = StrLabelConverter(ALPHABET)
     size = len(dataloader.dataset)
     for batch, (X, y) in enumerate(dataloader):
         # Compute prediction and loss
         pred = model(X)
-        loss = loss_fn(pred, y)
+        t, l = converter.encode(y)
+
+        batch_size = X.shape[0]
+        preds_size = torch.LongTensor([pred.shape[0]] * batch_size)
+        loss = loss_fn(pred, t, preds_size, l)
 
         # Backpropagation
         optimizer.zero_grad()
@@ -47,7 +50,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
 def main():
     args = parse_args()
 
-    nchanels, image_h, image_w = 3, 32, 100
+    nchanels, image_h, image_w = 1, 32, 100
 
     converter = StrLabelConverter(ALPHABET)
     train_dataloader = make_dataloader(
@@ -56,8 +59,11 @@ def main():
         args.batch_size,
         shuffle=True,
         verbose=args.verbose,
-        transform=Resize((image_h, image_w)),
-        target_transform=Lambda(lambda y: converter.encode(y))
+        transform=torch.nn.Sequential(
+            Resize((image_h, image_w)),
+            Grayscale(nchanels),
+        ),
+        #target_transform=Lambda(lambda y: converter.encode(y)) # TODO this way its niecer
     )
 
     model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
