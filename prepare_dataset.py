@@ -16,6 +16,8 @@ from nnet.settings import (
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', '-f', type = str, help = 'path to file which contains the image path and label', required=True)
+    parser.add_argument('--images', '-i', type = str, help = 'path to dir which contains images', required=True)
+    parser.add_argument('--database', '-db', type = str, help = 'path to database', required=True)
     parser.add_argument('--valid', action='store_true')
 
     return parser.parse_args()
@@ -104,7 +106,7 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
     print('Created dataset with %d samples' % nSamples)
 
 
-def read_data_from_file(file_path):
+def read_data_from_file(file_path, images):
     image_path_list = []
     label_list = []
     with open(file_path) as f:
@@ -113,7 +115,7 @@ def read_data_from_file(file_path):
 
             image_path = splitted[0].strip()
             label = splitted[-1].strip('\n')
-            image_path_list.append(f'{PERO_DATASET_PATH}/{image_path}')
+            image_path_list.append(f'{images}/{image_path}')
             label_list.append(label)
 
     return image_path_list, label_list
@@ -121,9 +123,9 @@ def read_data_from_file(file_path):
 
 def main():
     args = parse_args()
-    image_path_list, label_list = read_data_from_file(args.file)
+    image_path_list, label_list = read_data_from_file(args.file, args.images)
     db_path = LMDB_DATA_OUTPUT_PATH_TRAIN if not args.valid else LMDB_DATA_OUTPUT_PATH_VALID
-    createDataset(db_path, image_path_list, label_list)
+    createDataset(args.database, image_path_list, label_list)
 
 if __name__ == '__main__':
     main()

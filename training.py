@@ -47,14 +47,14 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
     if use_lmdb:
         transform = Resize((image_h, image_w))
         train_dataloader = make_lmdb_dataloader(
-            LMDB_DATA_OUTPUT_PATH_TRAIN,
+            train_annotation,
             batch_size,
             shuffle=True,
             transform=transform,
             verbose=verbose,
         )
         val_dataloader = make_lmdb_dataloader(
-            LMDB_DATA_OUTPUT_PATH_VALID,
+            validate_annotation,
             batch_size,
             shuffle=True,
             transform=transform,
@@ -84,7 +84,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             transform=img_tranforms
         )
 
-        return train_dataloader, val_dataloader
+    return train_dataloader, val_dataloader
 
 def train_loop(dataloader, model, loss_fn, optimizer):
     converter = StrLabelConverter(ALPHABET)

@@ -110,12 +110,12 @@ class Trainer(object):
             pred = self._model(X)
             t, l = self._converter.encode(y)
 
+            self._optimizer.zero_grad()
             batch_size = X.shape[0]
             preds_size = th.LongTensor([pred.shape[0]] * batch_size)
             loss = self._loss_fn(pred, t, preds_size, l)
             sum_loss += loss
             # Backpropagation
-            self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
         return sum_loss/size
@@ -178,21 +178,31 @@ class Trainer(object):
             # Train
             tr = self.train(train_loader)
             # Validate
-            cv = self.validate(dev_loader)
+            if self._cur_epoch % 10 == 0:
+                cv = self.validate(dev_loader)
+            else:
+                cv = None
 
             if self._verbose:
-                print(f"Train_loss: {tr} | CV_loss: {cv}")
+                if cv:
+                    print(f"Train_loss: {tr} | CV_loss: {cv}")
+                else:
+                    print(f"Train_loss: {tr}")
 
             # Log values
-            self.logger.info(f"Train_loss: {tr} | CV_loss: {cv}")
+            if cv:
+                self.logger.info(f"Train_loss: {tr} | CV_loss: {cv}")
+            else:
+                self.logger.info(f"Train_loss: {tr}")
             #Tensorboard
             self._writer.add_scalar("OCR/Train", tr, self._cur_epoch)
-            self._writer.add_scalar("OCR/CrossValidation", cv, self._cur_epoch)
+            if cv:
+                self._writer.add_scalar("OCR/CrossValidation", cv, self._cur_epoch)
             self._writer.flush()                    
-
-            if cv < best_loss:
-                best_loss = cv
-                self._save_checkpoint(cur_epoch=self._cur_epoch, model=self._model, optimizer=self._optimizer, best=True)
+            if cv:
+                if cv < best_loss:
+                    best_loss = cv
+                    self._save_checkpoint(cur_epoch=self._cur_epoch, model=self._model, optimizer=self._optimizer, best=True)
             
             self._save_checkpoint(cur_epoch=self._cur_epoch, model=self._model, optimizer=self._optimizer, best=False)
 
