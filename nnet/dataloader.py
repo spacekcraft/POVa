@@ -83,6 +83,7 @@ class PeroDataset(Dataset):
         self._transform = transform
         self._target_transform = target_transform
         self._alphabet = self._load_alphabet()
+        
 
         if self._verbose:
             print(
@@ -140,7 +141,8 @@ class PeroDataset(Dataset):
         Returns:
             Tuple[th.Tensor, str]: Image, label.
         """
-        image = read_image(f"{self._img_path}/{self._keys[idx]}")
+        
+        image = read_image(f"{self._img_path}/{self._keys[idx]}".strip()) #UPRAVA PRE ODSTRANENIE KONCA RIADKU V CESTE K SUBORU - MINO
         if self._transform:
             image = self._transform(image)
         annotation = self._annotation[self._keys[idx]]
