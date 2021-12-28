@@ -27,19 +27,9 @@ from nnet.settings import (
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Script for training the model.')
-    parser.add_argument('--batch-size', '-b', default=64, type=int)
-    parser.add_argument('--epochs', '-e', default=1000, type=int)
-    parser.add_argument('--learning-rate', '-lr', default=1e-3, type=float)
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--resume', '-r', type=str, default=None, help="Path to the resumed checkpoitn")
-    parser.add_argument('--train-annotation', '-ta', type=str, help="Path to the annotation file for train data")
-    parser.add_argument('--validate-annotation', '-va', type=str, help="Path to the annotation file for validation data")
-    parser.add_argument('--image-path', '-ip', type=str, help="Path to the images")
-    parser.add_argument('--checkpoint', '-ch', type=str, help="Path to the checkpoint dir")
-    parser.add_argument('--comment', '-cm', type=str, default = "", help="Experiment comment")
-    parser.add_argument('--run', '-rn', type=str, default = "./runs/run", help="Run")
-    parser.add_argument('--lmdb', '-d', action='store_true')
+    parser = argparse.ArgumentParser(description='Script for eval the model.')
+    parser.add_argument('--dataset', '-d', default="./pero/train.easy", type=str)
+    parser.add_argument('--samples', '-s', default=100, type=int)
     args = parser.parse_args()
     return args
 
@@ -50,34 +40,30 @@ def model_init(*args, pretrained=False):
         return torch.load("best.pt.tar",map_location ='cpu')
     return CRNN(*args)
 
-def main():
-    args = parse_args()
+def load_model(*args):
     nchanels, image_h, image_w = 1, 32, 512
     model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
     checkpoint = model_init(args,pretrained=True)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    print(model)
+
+def main():
+    args = parse_args()
+    
+    nchanels, image_h, image_w = 1, 32, 512
 
     img_tranforms = torch.nn.Sequential(
             Resize((image_h, image_w)),
             Grayscale(nchanels),
         )
 
-    dataset=PeroDataset("./pero/train.easy","./pero/lines",img_tranforms,False)
-
-    
-    train_dataloader = make_dataloader(
-            "./pero/train.easy",
-            "./pero/lines",
-            1,
-            shuffle=False,
-            verbose=False,
-            transform=img_tranforms
-        )
-    
-
+    dataset=PeroDataset(args.dataset,"./pero/lines",img_tranforms,False)
     converter = StrLabelConverter(dataset._alphabet)
+
+    print("Dataset name:",args.dataset)
+    print("Alphabet:'"+dataset._alphabet+"'")
+
+    model = load_model(args)
 
     val_string_targets = []
     predicted_strings_all = []
