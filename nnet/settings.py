@@ -9,7 +9,7 @@ PERO_ANNOTATIONS_PATH_VAL = os.environ.get('PERO_ANNOTATIONS_VAL', "./pero/val.e
 
 #ALPHABET = string.ascii_letters + string.digits + string.punctuation + ' ©°§ěščřžýáíéĚŠČŘŽÝÁÍÉďĎťŤňŇ'
 
-ALPHABET = ' !"#$%\'()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz{|}~§©°é' #pre train
+ALPHABET = ' !"#$%\'()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz{|}~§©°é' #for train.easy
 NUMBER_OF_CLASSES = len(ALPHABET)
 
 TRAINING_PROGRESS_LOG_INTERVAL = 100
