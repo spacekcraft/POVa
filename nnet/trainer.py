@@ -111,7 +111,6 @@ class Trainer(object):
             # Compute prediction and loss
             pred = self._model(X)
             t, l = self._converter.encode(y)
-            pdb.set_trace()
             self._optimizer.zero_grad()
             batch_size = X.shape[0]
             preds_size = th.LongTensor([pred.shape[0]] * batch_size)
@@ -139,7 +138,6 @@ class Trainer(object):
                 #y.to(self._device)
                 pred = self._model(X)
                 t, l = self._converter.encode(y)
-                pdb.set_trace()
                 batch_size = X.shape[0]
                 preds_size = th.LongTensor([pred.shape[0]] * batch_size)
                 loss = self._loss_fn(pred, t, preds_size, l)

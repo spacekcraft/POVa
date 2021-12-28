@@ -73,11 +73,12 @@ class ResnetExtracted(torch.nn.Module):
         super(ResnetExtracted, self).__init__()
         model = torchvision.models.resnet50(pretrained = True)
         self.model = create_feature_extractor(
-                model, return_nodes=["flatten"])
+                model, return_nodes=["flatten", "layer4"])
         print(model)
-        '''
+        
         train_n, eval_n  = get_graph_node_names(model)
-
+        print(f"train_nodes {train_n}")
+        '''
         inp = torch.randn(2, 3, 224, 224)
         with torch.no_grad():
             out = self.model(inp)
@@ -103,12 +104,12 @@ class CRNN(nn.Module):
 
     def forward(self, input):
         # conv features
-        conv = self.resnet(input.float()) #self.cnn(input.float())
+        #conv = self.cnn(input.float())
+        conv = self.resnet(input.float()) #
         #b, c, h, w = conv.size()
         #assert h == 1, "the height of conv must be 1"
         #conv = conv.squeeze(2)
         #conv = conv.permute(2, 0, 1)  # [w, b, c]
-        pdb.set_trace()
         # rnn features
         output = self.rnn(conv)
 
