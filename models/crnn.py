@@ -1,6 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
+from torchvision.models.feature_extraction import create_feature_extractor
+from torchvision.models.feature_extraction import get_graph_node_names
+
+import pdb
 
 class BidirectionalLSTM(nn.Module):
 
@@ -63,25 +68,47 @@ class CustomCNN(nn.Module):
     def forward(self, input):
         return self.cnn(input)
 
+class ResnetExtracted(torch.nn.Module):
+    def __init__(self):
+        super(ResnetExtracted, self).__init__()
+        model = torchvision.models.resnet50(pretrained = True)
+        self.model = create_feature_extractor(
+                model, return_nodes=["flatten"])
+        print(model)
+        '''
+        train_n, eval_n  = get_graph_node_names(model)
+
+        inp = torch.randn(2, 3, 224, 224)
+        with torch.no_grad():
+            out = self.model(inp)
+            pdb.set_trace()
+            print("Ahoj")
+        '''
+        
+    def forward(self, input):
+        x = self.model(input)["flatten", ]
+        return x
+
+
 class CRNN(nn.Module):
 
     def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
         super(CRNN, self).__init__()
-
+        self.resnet = ResnetExtracted()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
         self.rnn = nn.Sequential(
-            BidirectionalLSTM(512, nh, nh),
+            BidirectionalLSTM(2048, nh, nh),
             BidirectionalLSTM(nh, nh, nclass)
         )
 
     def forward(self, input):
         # conv features
-        conv = self.cnn(input.float())
-        b, c, h, w = conv.size()
-        assert h == 1, "the height of conv must be 1"
-        conv = conv.squeeze(2)
-        conv = conv.permute(2, 0, 1)  # [w, b, c]
-
+        conv = self.resnet(input.float()) #self.cnn(input.float())
+        #b, c, h, w = conv.size()
+        #assert h == 1, "the height of conv must be 1"
+        #conv = conv.squeeze(2)
+        #conv = conv.permute(2, 0, 1)  # [w, b, c]
+        pdb.set_trace()
         # rnn features
         output = self.rnn(conv)
 

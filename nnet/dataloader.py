@@ -15,6 +15,7 @@ from torchvision import transforms
 from tqdm import tqdm
 from PIL import Image
 
+import pdb
 
 def collate_variable_length(batch):
     imgs, labels = zip(*batch)
