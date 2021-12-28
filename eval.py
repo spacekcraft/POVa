@@ -82,8 +82,11 @@ def main():
     val_string_targets = []
     predicted_strings_all = []
 
+    cer = 0
+    wer = 0 
+    num = 10
 
-    for i in range(100):
+    for i in range(num):
         X,y=dataset.__getitem__(i)
         X = X.unsqueeze(0)
         pred = model(X)
@@ -98,9 +101,21 @@ def main():
         predicted_strings_all.extend(decoded_strings)
         val_string_targets.extend(y)
 
+        cerT=getCer(hyp=decoded_strings,ref=y)
+        werT=getWer(hyp=decoded_strings,ref=y)
+
+        cer += cerT
+        wer += werT 
+
         print("------------------------------------------------------------------")
         print(decoded_strings," | ",y)
+        print("------------------------------------------------------------------")
+        print("WER:{wer:.2f}%  | CER:{cer:.2f}%".format(wer = werT*100, cer = cerT*100))
+        print("------------------------------------------------------------------")
+        print()
 
+    print("TOTAL")
+    print("TOTAL WER:{wer:.2f}% TOTAL CER:{cer:.2f}%".format(wer = (wer/num)*100, cer = (cer/num)*100))
 
     
     
@@ -115,3 +130,4 @@ def main():
 
     
 main()
+
