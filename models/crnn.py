@@ -73,11 +73,11 @@ class ResnetExtracted(torch.nn.Module):
         super(ResnetExtracted, self).__init__()
         model = torchvision.models.resnet50(pretrained = True)
         self.model = create_feature_extractor(
-                model, return_nodes=["flatten", "layer4"])
-        print(model)
-        
+                model, return_nodes=["layer1"])
+        #print(model)
+
         train_n, eval_n  = get_graph_node_names(model)
-        print(f"train_nodes {train_n}")
+        #print(f"train_nodes {train_n}")
         '''
         inp = torch.randn(2, 3, 224, 224)
         with torch.no_grad():
@@ -85,10 +85,19 @@ class ResnetExtracted(torch.nn.Module):
             pdb.set_trace()
             print("Ahoj")
         '''
-        
+
+        self.conv2d_relu = nn.Sequential(
+            nn.Conv2d(256, 512, 3, 1, 1),
+            nn.ReLU(True)
+        )
+
+        self.average_pool = nn.AdaptiveAvgPool2d((1,128))
+
     def forward(self, input):
-        x = self.model(input)
-        return x['layer4']
+        x = self.model(input)['layer1']
+        x = self.conv2d_relu(x)
+        x = self.average_pool(x)
+        return x
 
 
 class CRNN(nn.Module):
@@ -98,7 +107,7 @@ class CRNN(nn.Module):
         self.resnet = ResnetExtracted()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
         self.rnn = nn.Sequential(
-            BidirectionalLSTM(2048, nh, nh),
+            BidirectionalLSTM(512, nh, nh),
             BidirectionalLSTM(nh, nh, nclass)
         )
 
