@@ -87,8 +87,8 @@ class ResnetExtracted(torch.nn.Module):
         '''
         
     def forward(self, input):
-        x = self.model(input)["flatten", ]
-        return x
+        x = self.model(input)
+        return x['layer4']
 
 
 class CRNN(nn.Module):
@@ -106,10 +106,10 @@ class CRNN(nn.Module):
         # conv features
         #conv = self.cnn(input.float())
         conv = self.resnet(input.float()) #
-        #b, c, h, w = conv.size()
+        b, c, h, w = conv.size()
         #assert h == 1, "the height of conv must be 1"
-        #conv = conv.squeeze(2)
-        #conv = conv.permute(2, 0, 1)  # [w, b, c]
+        conv = conv.squeeze(2)
+        conv = conv.permute(2, 0, 1)  # [w, b, c]
         # rnn features
         output = self.rnn(conv)
 
