@@ -95,17 +95,17 @@ class CRNN(nn.Module):
 
     def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
         super(CRNN, self).__init__()
-        self.resnet = ResnetExtracted()
+        #self.resnet = ResnetExtracted()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
         self.rnn = nn.Sequential(
-            BidirectionalLSTM(2048, nh, nh),
+            BidirectionalLSTM(512, nh, nh),
             BidirectionalLSTM(nh, nh, nclass)
         )
 
     def forward(self, input):
         # conv features
-        #conv = self.cnn(input.float())
-        conv = self.resnet(input.float()) #
+        conv = self.cnn(input.float())
+        #conv = self.resnet(input.float()) #
         b, c, h, w = conv.size()
         #assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
