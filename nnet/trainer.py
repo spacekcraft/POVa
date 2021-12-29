@@ -114,7 +114,7 @@ class Trainer(object):
             self._optimizer.zero_grad()
             batch_size = X.shape[0]
             preds_size = th.LongTensor([pred.shape[0]] * batch_size)
-            loss = self._loss_fn(pred, t, preds_size, l)
+            loss = self._loss_fn(pred, t, preds_size, l) / batch_size
             sum_loss += loss
             # Backpropagation
             loss.backward()
@@ -140,7 +140,7 @@ class Trainer(object):
                 t, l = self._converter.encode(y)
                 batch_size = X.shape[0]
                 preds_size = th.LongTensor([pred.shape[0]] * batch_size)
-                loss = self._loss_fn(pred, t, preds_size, l)
+                loss = self._loss_fn(pred, t, preds_size, l) / batch_size
                 sum_loss += loss
 
                 _, preds = pred.max(2)
