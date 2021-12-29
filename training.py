@@ -47,7 +47,11 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
     nchanels, image_h, image_w = image_shape
 
     if use_lmdb:
-        transform = transforms.Compose([Resize((image_h, image_w)), transforms.Lambda(lambda x: x.repeat(3,1,1))]) # lambda transform image to 3 channels
+        transform = transforms.Compose([
+            Resize((image_h, image_w)),
+            #transforms.Lambda(lambda x: x.repeat(3,1,1)),
+            transforms.Lambda(lambda x: x.sub_(0.5).div_(0.5))
+        ]) # lambda transform image to 3 channels
         train_dataloader = make_lmdb_dataloader(
             train_annotation,
             batch_size,
