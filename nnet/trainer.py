@@ -141,7 +141,7 @@ class Trainer(object):
                 batch_size = X.shape[0]
                 preds_size = th.LongTensor([pred.shape[0]] * batch_size)
                 loss = self._loss_fn(pred, t, preds_size, l)
-                sum_loss += loss            
+                sum_loss += loss
 
                 _, preds = pred.max(2)
                 preds = preds.transpose(1, 0).contiguous().view(-1)
