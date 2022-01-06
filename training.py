@@ -74,6 +74,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             batch_size,
             shuffle=True,
             verbose=verbose,
+            num_workers=4,
             transform=img_tranforms
         )
 
@@ -83,6 +84,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             batch_size,
             shuffle=False,
             verbose=verbose,
+            num_workers=4,
             transform=img_tranforms
         )
 
