@@ -97,7 +97,7 @@ class CRNN(nn.Module):
         super(CRNN, self).__init__()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
         self.rnn = nn.Sequential(
-            BidirectionalLSTM(2048, nh, nh),
+            BidirectionalLSTM(512, nh, nh),
             BidirectionalLSTM(nh, nh, nclass)
         )
 
