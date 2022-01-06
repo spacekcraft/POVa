@@ -75,7 +75,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=True,
             verbose=verbose,
             num_workers=4,
-            transform=img_tranforms
+            transform=None
         )
 
         val_dataloader = make_dataloader(
@@ -85,7 +85,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=False,
             verbose=verbose,
             num_workers=4,
-            transform=img_tranforms
+            transform=None
         )
 
     return train_dataloader, val_dataloader
@@ -104,7 +104,7 @@ def main():
     alphabetLoader = PeroDataset(annotation_path = args.alphabet_annotation, img_path = "")
     ALPHABET = alphabetLoader.get_alphabet()
 
-    nchanels, image_h, image_w = 1, 32, 512
+    nchanels, image_h, image_w = 1, 48, 512
     train_dataloader, val_dataloader = get_dataloaders(
         train_annotation = args.train_annotation,
         validate_annotation = args.validate_annotation,
@@ -115,7 +115,7 @@ def main():
         verbose = args.verbose
     )
 
-    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
+    model = CRNN(48, nchanels, NUMBER_OF_CLASSES, 256)
     
     trainer = Trainer(model = model, checkpoint = args.checkpoint, tensorboard_dir=args.run, comment=args.comment, alphabet=ALPHABET, learning_rate=args.learning_rate, verbose = args.verbose, resume_path=args.resume)
     trainer.run(train_dataloader, val_dataloader, num_epochs=args.epochs)
