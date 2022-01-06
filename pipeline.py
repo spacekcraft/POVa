@@ -12,7 +12,7 @@ def pad_dataset(annotation, images, pad_path):
     if not os.path.isdir(pad_path):
         os.mkdir(pad_path)
     keys = dataset.get_keys()
-    for id, (img, _) in tqdm(enumerate(dataset)):
+    for id, (img, _) in enumerate(tqdm(dataset)):
         img = img.float()/th.max(img)
         save_image(img, f"{pad_path}/{keys[id]}".strip())
 
