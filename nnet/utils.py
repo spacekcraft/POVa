@@ -1,6 +1,7 @@
 import torch
 
 import logging
+import json
 
 class StrLabelConverter:
     """Convert between str and label.
@@ -61,7 +62,7 @@ class StrLabelConverter:
         return (torch.LongTensor(text), torch.LongTensor(length))
 
 
-    def decode(self, t, length, raw=False):
+    def decode(self, text, length, raw=False):
         """Decode encoded texts back into strs.
 
         Args:
@@ -76,25 +77,25 @@ class StrLabelConverter:
         """
         if length.numel() == 1:
             length = length[0]
-            assert t.numel() == length, "text with length: {} does not match declared length: {}".format(t.numel(), length)
+            assert text.numel() == length, "text with length: {} does not match declared length: {}".format(text.numel(), length)
             if raw:
-                return ''.join([self.alphabet[i - 1] for i in t])
+                return ''.join([self.alphabet[i - 1] for i in text])
             else:
                 char_list = []
                 for i in range(length):
-                    if t[i] != 0 and (not (i > 0 and t[i - 1] == t[i])):
-                        char_list.append(self.alphabet[t[i] - 1])
+                    if text[i] != 0 and (not (i > 0 and text[i - 1] == text[i])):
+                        char_list.append(self.alphabet[text[i] - 1])
                 return ''.join(char_list)
         else:
             # batch mode
-            assert t.numel() == length.sum(), "texts with length: {} does not match declared length: {}".format(t.numel(), length.sum())
+            assert text.numel() == length.sum(), "texts with length: {} does not match declared length: {}".format(text.numel(), length.sum())
             texts = []
             index = 0
             for i in range(length.numel()):
                 l = length[i]
                 texts.append(
                     self.decode(
-                        t[index:index + l], torch.LongTensor([l]), raw=raw))
+                        text[index:index + l], torch.LongTensor([l]), raw=raw))
                 index += l
             return texts
 
@@ -116,3 +117,7 @@ def get_logger(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+def load_json(path):
+    with open(path, "r") as file:
+        return json.loads(file.read())

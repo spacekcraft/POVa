@@ -4,7 +4,7 @@
 """
 
 import io
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import lmdb
 import torch as th
@@ -21,7 +21,7 @@ def collate_variable_length(batch):
     imgs, labels = zip(*batch)
     return th.stack(imgs), labels
 
-def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, transform: transforms = None, target_transform: transforms = None) -> DataLoader:
+def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, num_workers = 0, transform: transforms = None, target_transform: transforms = None) -> DataLoader:
     """Creates dataloader and dataset from given parameters.
 
     Args:
@@ -50,6 +50,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
+        num_workers=num_workers,
         collate_fn=collate_variable_length
     )
     if verbose:
@@ -58,7 +59,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
 
 
 class PeroDataset(Dataset):
-    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True):
+    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = None):
         """Init dataset.
 
         Args:
@@ -71,6 +72,7 @@ class PeroDataset(Dataset):
             Exception: [description]
         """
         self._verbose = verbose
+        self._img_path = img_path
         if self._verbose:
             print(
                 f"PeroDataset: Loading annotations from {annotation_path}...")
@@ -80,17 +82,29 @@ class PeroDataset(Dataset):
             raise Exception(f"Pero dataset: {e}")
 
         self._keys = list(self._annotation.keys())
-        self._img_path = img_path
         self._transform = transform
         self._target_transform = target_transform
-        self._alphabet = self.load_alphabet()
-        
+        self._alphabet = self._load_alphabet()
+
+
+        self._max_width = width if width is not None else self._get_max_width()
+
 
         if self._verbose:
             print(
                 f"PeroDataset: Loaded annotations for {len(self)} images on path {img_path}.")
+    def get_keys(self)->List:
+        return self._keys
 
-    def load_alphabet(self) -> str:
+    def get_alphabet(self)->List:
+        """Get dataset alphabet
+
+        Returns:
+            List: Alphabet
+        """        
+        return self._alphabet
+
+    def _load_alphabet(self) -> str:
         """Get unique chars in anotation.
 
         Returns:
@@ -103,8 +117,26 @@ class PeroDataset(Dataset):
         	
         return ''.join(sorted(unique))
 
-    def _load_annotation(self, path: str) -> Dict:
-        """Load annotation file.
+    def _get_max_width(self):
+        max_width = 0
+        hist = dict()
+        for key in tqdm(self._keys) if self._verbose else self._keys:
+            image = Image.open(f"{self._img_path}/{key}".strip())
+            #pdb.set_trace()
+            #max_width = max(max_width, image.size[0])
+            if image.size[0] in hist.keys():
+                hist[image.size[0]] += 1
+            else:
+                hist[image.size[0]] = 1
+            if max_width < image.size[0]: 
+                max_width = image.size[0]
+                print(max_width)
+        print(f"{hist}")
+        pdb.set_trace()
+        return max_width
+
+    def _load_annotation(self, path: str) -> Tuple[Dict, int]:
+        """Load annotation file ang get maximum width.
 
         Args:
             path (str): Path to the annotation file.
@@ -113,7 +145,7 @@ class PeroDataset(Dataset):
             e: If annotation file is not on the path, raise error.
 
         Returns:
-            Dict: Loaded annotations.
+            Tuple[Dict,int]: Loaded annotations and maximum width.
         """
         try:
             with open(path, "r") as f:
@@ -144,6 +176,7 @@ class PeroDataset(Dataset):
         """
         
         image = read_image(f"{self._img_path}/{self._keys[idx]}".strip()) #UPRAVA PRE ODSTRANENIE KONCA RIADKU V CESTE K SUBORU - MINO
+        image = th.nn.functional.pad(image, (0, self._max_width - image.shape[-1]), "constant", 0)
         if self._transform:
             image = self._transform(image)
         annotation = self._annotation[self._keys[idx]]
@@ -151,7 +184,7 @@ class PeroDataset(Dataset):
             annotation = self._target_transform(annotation)
         return image, annotation
 
-def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_transform = None, shuffle=False, verbose=False):
+def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_transform = None, shuffle=False, verbose=False, num_workers  = 0):
     if verbose:
         print("Initializing PeroDataset...")
     dataset = PeroLmdbDataset(
@@ -165,6 +198,7 @@ def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_tr
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
+        num_workers = num_workers,
         collate_fn=collate_variable_length
     )
     if verbose:
