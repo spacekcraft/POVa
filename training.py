@@ -100,7 +100,7 @@ def main():
     args = parse_args()
 
     alphabetLoader = PeroDataset(annotation_path = args.alphabet_annotation, img_path = "")
-    ALPHABET = alphabetLoader.load_alphabet()
+    ALPHABET = alphabetLoader.get_alphabet()
 
     nchanels, image_h, image_w = 1, 32, 512
     train_dataloader, val_dataloader = get_dataloaders(
