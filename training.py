@@ -63,9 +63,8 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             verbose=verbose,
         )
     else:
-        img_tranforms = torch.nn.Sequential(
-            Resize((image_h, image_w)),
-            Grayscale(nchanels),
+        img_transforms = torch.nn.Sequential(
+            Grayscale(nchanels)
         )
         # converter = StrLabelConverter(ALPHABET)
         train_dataloader = make_dataloader(
@@ -75,7 +74,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=True,
             verbose=verbose,
             num_workers=4,
-            transform=None
+            transform=img_transforms
         )
 
         val_dataloader = make_dataloader(
@@ -85,7 +84,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=False,
             verbose=verbose,
             num_workers=4,
-            transform=None
+            transform=img_transforms
         )
 
     return train_dataloader, val_dataloader
