@@ -20,5 +20,5 @@ if __name__ == "__main__":
     print("Starting pipeline:")
     print("Inicialize dataset -> pad dataset to same width -> create lmdb database files -> train -> test")
     print("Initialize dataset and pad it")
-    pad_dataset( "./pero/valid.easy", "./pero/lines", "./pero/padlines_lines")
-    
+    pad_dataset( "../dataset/train.easy", "../dataset/lines", "../dataset/padlines_lines")
+    pad_dataset( "../dataset/valid.easy", "../dataset/lines", "../dataset/padlines_lines")
