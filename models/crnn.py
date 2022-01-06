@@ -63,6 +63,7 @@ class CustomCNN(nn.Module):
         cnn.add_module('pooling{0}'.format(3),
                        nn.MaxPool2d((2, 2), (2, 1), (0, 1)))  # 512x2x16
         convRelu(6, True)  # 512x1x16
+        cnn.add_module('adaptiveAvgPooling', nn.AdaptiveAvgPool2d((1,453)))
         self.cnn = cnn
 
     def forward(self, input):
@@ -106,7 +107,7 @@ class CRNN(nn.Module):
         #conv = self.cnn(input.float())
         conv = self.cnn(input.float()) #
         b, c, h, w = conv.size()
-        #assert h == 1, "the height of conv must be 1"
+        assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
         conv = conv.permute(2, 0, 1)  # [w, b, c]
         # rnn features
