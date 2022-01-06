@@ -59,7 +59,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
 
 
 class PeroDataset(Dataset):
-    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = None):
+    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = 1810):
         """Init dataset.
 
         Args:

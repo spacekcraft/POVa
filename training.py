@@ -58,7 +58,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
         val_dataloader = make_lmdb_dataloader(
             validate_annotation,
             batch_size,
-            shuffle=True,
+            shuffle=False,
             transform=transform,
             verbose=verbose,
         )
@@ -81,7 +81,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             validate_annotation,
             image_path,
             batch_size,
-            shuffle=True,
+            shuffle=False,
             verbose=verbose,
             transform=img_tranforms
         )
