@@ -1,13 +1,18 @@
 import os
 
 import torch as th
+from torchvision import transforms
+from torchvision.transforms.transforms import Grayscale
 from nnet.dataloader import PeroDataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
 
 def pad_dataset(annotation, images, pad_path):
-    dataset = PeroDataset(annotation, images, width = 1810)
+    img_transforms = th.nn.Sequential(
+            Grayscale(1)
+        )
+    dataset = PeroDataset(annotation, images, width = 1810, transform=img_transforms)
     
     if not os.path.isdir(pad_path):
         os.mkdir(pad_path)

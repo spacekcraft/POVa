@@ -59,7 +59,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
 
 
 class PeroDataset(Dataset):
-    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = 1810):
+    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = 1810, grayscale:bool = True):
         """Init dataset.
 
         Args:
@@ -73,6 +73,7 @@ class PeroDataset(Dataset):
         """
         self._verbose = verbose
         self._img_path = img_path
+        self._grayscale = grayscale
         if self._verbose:
             print(
                 f"PeroDataset: Loading annotations from {annotation_path}...")
@@ -176,12 +177,16 @@ class PeroDataset(Dataset):
         """
         
         image = read_image(f"{self._img_path}/{self._keys[idx]}".strip()) #UPRAVA PRE ODSTRANENIE KONCA RIADKU V CESTE K SUBORU - MINO
-        image = th.nn.functional.pad(image, (0, self._max_width - image.shape[-1]), "constant", 0)
+        if self._max_width - image.shape[-1]:
+            image = th.nn.functional.pad(image, (0, self._max_width - image.shape[-1]), "constant", 0)
         if self._transform:
             image = self._transform(image)
         annotation = self._annotation[self._keys[idx]]
         if self._target_transform:
             annotation = self._target_transform(annotation)
+        
+        if self._grayscale:
+            image = image[0].unsqueeze(0)
         return image, annotation
 
 def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_transform = None, shuffle=False, verbose=False, num_workers  = 0):

@@ -45,7 +45,7 @@ def parse_args():
 
 def get_dataloaders(train_annotation, validate_annotation, image_path, batch_size, image_shape, use_lmdb=False, verbose=False):
     nchanels, image_h, image_w = image_shape
-
+    num_workers = 4
     if use_lmdb:
         transform = transforms.Compose([Resize((image_h, image_w)), transforms.Lambda(lambda x: x.repeat(3,1,1))]) # lambda transform image to 3 channels
         train_dataloader = make_lmdb_dataloader(
@@ -54,6 +54,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=True,
             transform=transform,
             verbose=verbose,
+            num_workers=num_workers,
         )
         val_dataloader = make_lmdb_dataloader(
             validate_annotation,
@@ -61,6 +62,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             shuffle=False,
             transform=transform,
             verbose=verbose,
+            num_workers=num_workers
         )
     else:
         img_transforms = torch.nn.Sequential(
@@ -73,8 +75,8 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             batch_size,
             shuffle=True,
             verbose=verbose,
-            num_workers=4,
-            transform=img_transforms
+            num_workers=num_workers,
+            transform=None
         )
 
         val_dataloader = make_dataloader(
@@ -83,8 +85,8 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             batch_size,
             shuffle=False,
             verbose=verbose,
-            num_workers=4,
-            transform=img_transforms
+            num_workers=num_workers,
+            transform=None
         )
 
     return train_dataloader, val_dataloader
@@ -114,7 +116,7 @@ def main():
         verbose = args.verbose
     )
 
-    model = CRNN(48, nchanels, NUMBER_OF_CLASSES, 256)
+    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
     
     trainer = Trainer(model = model, checkpoint = args.checkpoint, tensorboard_dir=args.run, comment=args.comment, alphabet=ALPHABET, learning_rate=args.learning_rate, verbose = args.verbose, resume_path=args.resume)
     trainer.run(train_dataloader, val_dataloader, num_epochs=args.epochs)
