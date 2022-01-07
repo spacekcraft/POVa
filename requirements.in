@@ -2,5 +2,5 @@ torch
 torchvision
 tqdm
 lmdb
-opencv-python
 pillow
+matplotlib

@@ -94,6 +94,7 @@ class PeroDataset(Dataset):
         if self._verbose:
             print(
                 f"PeroDataset: Loaded annotations for {len(self)} images on path {img_path}.")
+
     def get_keys(self)->List:
         return self._keys
 
@@ -237,19 +238,16 @@ class PeroLmdbDataset(Dataset):
         return self.nSamples
 
     def __getitem__(self, index):
-        assert index <= len(self), 'index range error'
-        index += 1
+        assert index < len(self), 'index range error'
         with self.env.begin(write=False) as txn:
-            img_key = 'image-%09d' % index
+            img_key = f'image-{index}'
             imgbuf = txn.get(img_key.encode('utf-8'))
 
             buf = io.BytesIO()
             buf.write(imgbuf)
             buf.seek(0)
             try:
-                img = Image.open(buf).convert('L')
-                transform = transforms.ToTensor()
-                img = transform(img)
+                img = th.load(buf)
             except IOError:
                 print('Corrupted image for %d' % index)
                 return self[index + 1]
@@ -257,7 +255,7 @@ class PeroLmdbDataset(Dataset):
             if self.transform is not None:
                 img = self.transform(img)
 
-            label_key = 'label-%09d' % index
+            label_key = f'label-{index}'
             label = txn.get(label_key.encode('utf-8')).decode('utf-8')
 
             if self.target_transform is not None:

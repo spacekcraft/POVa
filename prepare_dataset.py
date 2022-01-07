@@ -2,45 +2,32 @@ import os
 import argparse
 import shutil
 import sys
+import io
 
 from tqdm import tqdm
-import numpy as np
-import cv2
 import lmdb
+import torch
+import matplotlib.pyplot as plt
 
 from nnet.settings import (
     LMDB_DATA_OUTPUT_PATH_TRAIN,
     LMDB_DATA_OUTPUT_PATH_VALID,
     PERO_DATASET_PATH,
 )
+
+from nnet.dataloader import PeroDataset
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', '-f', type = str, help = 'path to file which contains the image path and label', required=True)
     parser.add_argument('--images', '-i', type = str, help = 'path to dir which contains images', required=True)
     parser.add_argument('--database', '-db', type = str, help = 'path to database', required=True)
-    parser.add_argument('--valid', action='store_true')
 
     return parser.parse_args()
 
 
-def checkImageIsValid(imageBin):
-    if imageBin is None:
-        return False
-
-    try:
-        imageBuf = np.frombuffer(imageBin, dtype=np.uint8)
-        img = cv2.imdecode(imageBuf, cv2.IMREAD_GRAYSCALE)
-        imgH, imgW = img.shape[0], img.shape[1]
-    except:
-        return False
-    else:
-        if imgH * imgW == 0:
-            return False
-
-    return True
-
-
-def writeCache(env, cache):
+def write_cache(env, cache):
     with env.begin(write=True) as txn:
         for k, v in cache.items():
             if type(k) == str:
@@ -50,16 +37,13 @@ def writeCache(env, cache):
             txn.put(k,v)
 
 
-def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkValid=True):
+def create_dataset(outputPath, dataset):
     """
     Create LMDB dataset for CRNN training.
 
     ARGS:
         outputPath    : LMDB output path
-        imagePathList : list of image path
-        labelList     : list of corresponding groundtruth texts
-        lexiconList   : (optional) list of lexicon lists
-        checkValid    : if true, check the validity of every image
+        dataset       : dataset to store
     """
     # If lmdb file already exists, remove it. Or the new data will add to it.
     if os.path.exists(outputPath):
@@ -68,64 +52,34 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
     else:
         os.makedirs(outputPath)
 
-    assert (len(imagePathList) == len(labelList))
-    nSamples = len(imagePathList)
     env = lmdb.open(outputPath, map_size=1099511627776)
     cache = {}
-    cnt = 1
-    for i in tqdm(range(nSamples)):
-        imagePath = imagePathList[i]
-        label = labelList[i]
+    for i, (image, label)  in enumerate(tqdm(dataset)):
+        buffer = io.BytesIO()
+        torch.save(image, buffer)
+        buffer.seek(0)
+        image_bin = buffer.read()
 
-        if not os.path.exists(imagePath):
-            print('%s does not exist' % imagePath)
-            continue
-        with open(imagePath, 'rb') as f:
-            imageBin = f.read()
-        if checkValid:
-            if not checkImageIsValid(imageBin):
-                print('%s is not a valid image' % imagePath)
-                continue
-
-        imageKey = 'image-%09d' % cnt
-        labelKey = 'label-%09d' % cnt
-        cache[imageKey] = imageBin
+        imageKey = f'image-{i}'
+        labelKey = f'label-{i}'
+        cache[imageKey] = image_bin
         cache[labelKey] = label
-        if lexiconList:
-            lexiconKey = 'lexicon-%09d' % cnt
-            cache[lexiconKey] = ' '.join(lexiconList[i])
-        if cnt % 1000 == 0:
-            writeCache(env, cache)
+        if i % 1000 == 0:
+            write_cache(env, cache)
             cache = {}
-            #print('Written %d / %d' % (cnt, nSamples))
-        cnt += 1
-    nSamples = cnt-1
+
+    nSamples = len(dataset)
     cache['num-samples'] = str(nSamples)
-    writeCache(env, cache)
+    write_cache(env, cache)
     env.close()
+
     print('Created dataset with %d samples' % nSamples)
-
-
-def read_data_from_file(file_path, images):
-    image_path_list = []
-    label_list = []
-    with open(file_path) as f:
-        for line in f:
-            splitted = line.split(" ", maxsplit=1)
-
-            image_path = splitted[0].strip()
-            label = splitted[-1].strip('\n')
-            image_path_list.append(f'{images}/{image_path}')
-            label_list.append(label)
-
-    return image_path_list, label_list
 
 
 def main():
     args = parse_args()
-    image_path_list, label_list = read_data_from_file(args.file, args.images)
-    db_path = LMDB_DATA_OUTPUT_PATH_TRAIN if not args.valid else LMDB_DATA_OUTPUT_PATH_VALID
-    createDataset(args.database, image_path_list, label_list)
+    pero_dataset = PeroDataset(args.file, args.images)
+    create_dataset(args.database, pero_dataset)
 
 if __name__ == '__main__':
     main()

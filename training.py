@@ -47,12 +47,11 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
     nchanels, image_h, image_w = image_shape
     num_workers = 4
     if use_lmdb:
-        transform = transforms.Compose([Resize((image_h, image_w)), transforms.Lambda(lambda x: x.repeat(3,1,1))]) # lambda transform image to 3 channels
         train_dataloader = make_lmdb_dataloader(
             train_annotation,
             batch_size,
             shuffle=True,
-            transform=transform,
+            transform=Grayscale(nchanels),
             verbose=verbose,
             num_workers=num_workers,
         )
@@ -60,7 +59,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             validate_annotation,
             batch_size,
             shuffle=False,
-            transform=transform,
+            transform=Grayscale(nchanels),
             verbose=verbose,
             num_workers=num_workers
         )
@@ -90,14 +89,6 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
         )
 
     return train_dataloader, val_dataloader
-
-def model_init(*args, pretrained=False):
-    if pretrained:
-        print("Loaded pretrained model")
-        return torch.load(SAVE_MODEL_PATH)
-
-    #return CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
-    return CRNN(*args)
 
 def main():
     args = parse_args()
