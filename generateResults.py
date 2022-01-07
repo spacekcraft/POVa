@@ -97,14 +97,19 @@ def main():
     i = 0
     print(" \n \n")
     if(args.labels):
-        
+        path = os.path.dirname(os.path.abspath(__file__))
+        print(os.path.isdir(os.path.abspath(__file__)+'/results'))
         if(os.path.isdir(os.path.abspath(__file__)+'/results')):
-            path = os.path.dirname(os.path.abspath(__file__))
-            os.mkdir(path+"/results")
-            print("results created")   
+            
+            print("results found",path+"/results")   
+          
         else:
-            print("results found")   
+            print("results created",path+"/results")     
+            os.mkdir(path+"/results")
 
+
+
+    path = os.path.dirname(os.path.abspath(__file__))+'/results'
     for X, y in dataset:
         X = X.unsqueeze(0)
         pred = model(X)
@@ -151,20 +156,15 @@ def main():
             new_img = ImageOps.expand(img, border=border, fill=color)
             draw = ImageDraw.Draw(new_img)
             draw.text((5, width+int(0.1*width)), decoded_strings, fill=(0, 0, 0), font=myFont)
+
+            new_img.save(path+"/"+y)
+
             
-            #img.show()
-
-            new_img.save("results/"+y)
-
-            # show new bordered image in preview
-            #new_img.show()
 
 
 
         f.write(y+" "+decoded_strings+"\n")
-        i += 1
-        if(i == 100):
-            break
+        
 
     f.close()
 
