@@ -48,10 +48,21 @@ def parse_args():
     return args
 
 def load_checkpoint(resume:str, model:th.nn.Module):
+
+        if th.cuda.is_available():  
+            dev = "cuda:0" 
+            print("thorch GPU")
+        else:  
+            dev = "cpu"  
+            print("thorch CPU")
+
+        print(dev)
+        device = th.device(dev)  
+
         if not os.path.exists(resume):
                 raise FileNotFoundError(
                     "Could not find resume checkpoint: {}".format(resume))
-        cpt = th.load(resume, map_location="cpu")
+        cpt = th.load(resume, map_location=device)
         cur_epoch = cpt["epoch"]
         print("Resume from checkpoint {}: epoch {:d}".format(
             resume, cur_epoch))
@@ -60,6 +71,10 @@ def load_checkpoint(resume:str, model:th.nn.Module):
         return model
 
 def main():
+
+    
+
+
     args = parse_args()
     
     nchanels, image_h, image_w = 1, 48, 512
@@ -85,7 +100,6 @@ def main():
 
     sum_cer = 0
     sum_wer = 0 
-    num = 10
 
 
     
@@ -93,22 +107,17 @@ def main():
 
     print("Result file:",args.annotation+".result")
     f = open(os.path.basename(args.annotation)+".result", "w")
-
-    i = 0
-    print(" \n \n")
+    
     if(args.labels):
         path = os.path.dirname(os.path.abspath(__file__))
-        print(os.path.isdir(os.path.abspath(__file__)+'/results'))
-        if(os.path.isdir(os.path.abspath(__file__)+'/results')):
-            
+        if(os.path.isdir('results')):
             print("results found",path+"/results")   
-          
         else:
             print("results created",path+"/results")     
-            os.mkdir(path+"/results")
+            os.mkdir("results")
 
 
-
+    i = 0
     path = os.path.dirname(os.path.abspath(__file__))+'/results'
     for X, y in dataset:
         X = X.unsqueeze(0)
