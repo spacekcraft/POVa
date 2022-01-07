@@ -2,6 +2,7 @@ import argparse
 from genericpath import exists
 
 import os
+from pathlib import Path
 
 import torch as th
 from torchvision.transforms import Lambda, Resize, Grayscale
@@ -87,8 +88,11 @@ def main():
     num = 10
 
 
+    
+    
+
     print("Result file:",args.annotation+".result")
-    f = open(args.annotation+".result", "w")
+    f = open(os.path.basename(args.annotation)+".result", "w")
 
     i = 0
     print(" \n \n")
