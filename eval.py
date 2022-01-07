@@ -31,6 +31,7 @@ from nnet.settings import (
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Script for eval the model.')
+    parser.add_argument('--alphabet', '-al', required=True, type=str)
     parser.add_argument('--annotation', '-a', required=True, type=str)
     parser.add_argument('--images', '-i', required=True, type=str)
     parser.add_argument('--samples', '-s', default=100, type=int)
@@ -60,16 +61,17 @@ def main():
             Grayscale(nchanels),
         )'''
 
+    alphabet=PeroDataset(args.alphabet,args.images,None,False, width=1810).get_alphabet()
     dataset=PeroDataset(args.annotation,args.images,None,False, width=1810)
-    converter = StrLabelConverter(dataset.get_alphabet())
-    NUMBER_OF_CLASSES = len(dataset.get_alphabet())
+    converter = StrLabelConverter(alphabet)
+    NUMBER_OF_CLASSES = len(alphabet)
 
     print("Dataset name:",args.annotation)
-    print("Alphabet:'"+dataset.get_alphabet()+"'")
+    print("Alphabet:'"+alphabet+"'")
 
     model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
     model = load_checkpoint(args.checkpoint, model)
-
+    print("LOADED!")
     val_string_targets = []
     predicted_strings_all = []
 
