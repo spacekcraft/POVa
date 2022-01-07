@@ -104,6 +104,7 @@ def main():
 
     alphabetLoader = PeroDataset(annotation_path = args.alphabet_annotation, img_path = "")
     ALPHABET = alphabetLoader.get_alphabet()
+    NUMBER_OF_CLASSES = len(ALPHABET)
 
     nchanels, image_h, image_w = 1, 48, 512
     train_dataloader, val_dataloader = get_dataloaders(
