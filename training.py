@@ -8,8 +8,6 @@ from torch.autograd import Variable
 from models.crnn import CRNN
 from nnet.trainer import Trainer
 from nnet.dataloader import PeroDataset, make_dataloader, make_lmdb_dataloader
-from nnet.utils import StrLabelConverter
-from nnet.cwer import getCer, getWer
 from nnet.settings import (
     PERO_DATASET_PATH,
     PERO_ANNOTATIONS_PATH_TRAIN,
@@ -32,7 +30,7 @@ def parse_args():
     parser.add_argument('--resume', '-r', type=str, default=None, help="Path to the resumed checkpoitn")
     parser.add_argument('--train-annotation', '-ta', type=str, help="Path to the annotation file for train data")
     parser.add_argument('--validate-annotation', '-va', type=str, help="Path to the annotation file for validation data")
-    parser.add_argument('--alphabet-annotation', '-aa', type=str, help="Path to the annotation file for loading alphabet")
+    parser.add_argument('--alphabet-annotation', '-aa', nargs='+', type=str, help="Path to the annotation file for loading alphabet")
     parser.add_argument('--image-path', '-ip', type=str, help="Path to the images")
     parser.add_argument('--checkpoint', '-ch', type=str, help="Path to the checkpoint dir")
     parser.add_argument('--comment', '-cm', type=str, default = "", help="Experiment comment")
@@ -92,9 +90,13 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
 
 def main():
     args = parse_args()
-
-    alphabetLoader = PeroDataset(annotation_path = args.alphabet_annotation, img_path = "")
-    ALPHABET = alphabetLoader.get_alphabet()
+    # Create total alphabet from all annotations
+    ALPHABET = ""
+    for annot in args.alphabet_annotation:
+        alphabetLoader = PeroDataset(annotation_path = annot, img_path = "")
+        ALPHABET += alphabetLoader.get_alphabet()
+    ALPHABET = ''.join(sorted(set(ALPHABET)))
+    print(f"ALPHABET: {ALPHABET}")
     NUMBER_OF_CLASSES = len(ALPHABET)
 
     nchanels, image_h, image_w = 1, 48, 512

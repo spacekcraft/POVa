@@ -10,7 +10,7 @@ from torch.autograd import Variable
 from matplotlib import pyplot as plt
 
 
-
+from tqdm import tqdm
 
 from PIL import Image, ImageOps, ImageDraw, ImageFont 
 import numpy as np
@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument('--images', '-i', required=True, type=str)
     parser.add_argument('--samples', '-s', default=100, type=int)
     parser.add_argument('--checkpoint', '-ch', required=True, type=str)
+    parser.add_argument('--results', '-r', required=True, type=str)
 
     parser.add_argument('--labels', '-l', required=False, action='store_true')
     args = parser.parse_args()
@@ -106,7 +107,7 @@ def main():
     
 
     print("Result file:",args.annotation+".result")
-    f = open(os.path.basename(args.annotation)+".result", "w")
+    f = open(args.results, "w")
     
     if(args.labels):
         path = os.path.dirname(os.path.abspath(__file__))
@@ -119,7 +120,7 @@ def main():
 
     i = 0
     path = os.path.dirname(os.path.abspath(__file__))+'/results'
-    for X, y in dataset:
+    for X, y in tqdm(dataset):
         X = X.unsqueeze(0)
         pred = model(X)
         

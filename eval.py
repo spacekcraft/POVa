@@ -5,6 +5,7 @@ import torch as th
 from torchvision.transforms import Lambda, Resize, Grayscale
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 from PIL import Image
 import numpy as np
@@ -77,8 +78,9 @@ def main():
 
     sum_cer = 0
     sum_wer = 0 
-    num = 10
-    for X, y in dataset:
+    num = 0
+    for X, y in tqdm(dataset):
+        num+=1
         X = X.unsqueeze(0)
         pred = model(X)
         
@@ -103,11 +105,10 @@ def main():
         print("------------------------------------------------------------------")
         print("WER:{wer:.2f}%  | CER:{cer:.2f}%".format(wer = werT*100, cer = cerT*100))
         print("------------------------------------------------------------------")
-        pdb.set_trace()
 
 
-    print("TOTAL")
-    print("TOTAL WER:{wer:.2f}% TOTAL CER:{cer:.2f}%".format(wer = (wer/num)*100, cer = (cer/num)*100))
+        print("TOTAL")
+        print("TOTAL WER:{wer:.2f}% TOTAL CER:{cer:.2f}%".format(wer = (sum_wer/num)*100, cer = (sum_cer/num)*100))
 
     
     

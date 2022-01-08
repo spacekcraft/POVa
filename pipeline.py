@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import torch as th
@@ -7,6 +8,13 @@ from nnet.dataloader import PeroDataset
 from torchvision.utils import save_image
 from tqdm import tqdm
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Script for eval the model.')
+    parser.add_argument('--annotation', '-a', required=True, type=str)
+    parser.add_argument('--images', '-i', required=True, type=str)
+    parser.add_argument('--results', '-r', required=True, type=str)
+    args = parser.parse_args()
+    return args
 
 def pad_dataset(annotation, images, pad_path):
     img_transforms = th.nn.Sequential(
@@ -22,8 +30,8 @@ def pad_dataset(annotation, images, pad_path):
         save_image(img, f"{pad_path}/{keys[id]}".strip())
 
 if __name__ == "__main__":
+    args = parse_args()
     print("Starting pipeline:")
     print("Inicialize dataset -> pad dataset to same width -> create lmdb database files -> train -> test")
     print("Initialize dataset and pad it")
-    pad_dataset( "../dataset/train.easy", "../dataset/lines", "../dataset/padlines_lines")
-    pad_dataset( "../dataset/valid.easy", "../dataset/lines", "../dataset/padlines_lines")
+    pad_dataset(args.annotation, args.images, args.results)
