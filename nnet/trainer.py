@@ -212,7 +212,6 @@ class Trainer(object):
         # avoid alloc memory from gpu0
         
         if self.gpuid:
-            print("DBG")
             with th.cuda.device(self.gpuid[0]):
                 self._run(train_loader=train_loader, dev_loader=dev_loader, num_epochs=num_epochs)
         else:

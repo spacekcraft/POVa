@@ -21,7 +21,11 @@ def collate_variable_length(batch):
     imgs, labels = zip(*batch)
     return th.stack(imgs), labels
 
-def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, num_workers = 0, transform: transforms = None, target_transform: transforms = None) -> DataLoader:
+def collate_variable_length_test(batch):
+    keys, imgs, labels = zip(*batch)
+    return keys, th.stack(imgs), labels
+
+def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffle: bool, verbose: bool, num_workers = 0, transform: transforms = None, target_transform: transforms = None, width:int = 1810, test:bool = False) -> DataLoader:
     """Creates dataloader and dataset from given parameters.
 
     Args:
@@ -42,7 +46,9 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
         img_path=img_path,
         transform=transform,
         target_transform=target_transform,
-        verbose=verbose
+        verbose=verbose,
+        width = width,
+        test = test
     )
     if verbose:
         print("Creating dataloader...")
@@ -51,7 +57,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        collate_fn=collate_variable_length
+        collate_fn=collate_variable_length if test is False else collate_variable_length_test
     )
     if verbose:
         print("Done")
@@ -59,7 +65,7 @@ def make_dataloader(annotation_path: str, img_path: str, batch_size: int, shuffl
 
 
 class PeroDataset(Dataset):
-    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = 1810, grayscale:bool = True):
+    def __init__(self, annotation_path: str, img_path: str, transform: transforms = None, target_transform: transforms = None, verbose: bool = True, width:int = 1810, grayscale:bool = True, test:bool = False):
         """Init dataset.
 
         Args:
@@ -72,6 +78,7 @@ class PeroDataset(Dataset):
             Exception: [description]
         """
         self._verbose = verbose
+        self._test = test
         self._img_path = img_path
         self._grayscale = grayscale
         if self._verbose:
@@ -188,6 +195,8 @@ class PeroDataset(Dataset):
         
         if self._grayscale:
             image = image[0].unsqueeze(0)
+        if self._test:
+            return self._keys[idx], image, annotation
         return image, annotation
 
 def make_lmdb_dataloader(lmdb_data_path, batch_size, transform = None, target_transform = None, shuffle=False, verbose=False, num_workers  = 0):
