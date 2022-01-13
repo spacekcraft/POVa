@@ -1,6 +1,7 @@
 import argparse
 
 import torch
+from torch.nn.functional import dropout
 from torchvision import transforms
 from torchvision.transforms import Lambda, Resize, Grayscale
 from torch.autograd import Variable
@@ -36,6 +37,7 @@ def parse_args():
     parser.add_argument('--comment', '-cm', type=str, default = "", help="Experiment comment")
     parser.add_argument('--run', '-rn', type=str, default = "./runs/run", help="Run")
     parser.add_argument('--lmdb', '-d', action='store_true')
+    parser.add_argument('--dropout', '-drp', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -49,7 +51,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             train_annotation,
             batch_size,
             shuffle=True,
-            transform=Grayscale(nchanels),
+            transform=None,#Grayscale(nchanels),
             verbose=verbose,
             num_workers=num_workers,
         )
@@ -57,7 +59,7 @@ def get_dataloaders(train_annotation, validate_annotation, image_path, batch_siz
             validate_annotation,
             batch_size,
             shuffle=False,
-            transform=Grayscale(nchanels),
+            transform=None,#Grayscale(nchanels),
             verbose=verbose,
             num_workers=num_workers
         )
@@ -110,7 +112,7 @@ def main():
         verbose = args.verbose
     )
 
-    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
+    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256, dropout=args.dropout)
     
     trainer = Trainer(model = model, checkpoint = args.checkpoint, tensorboard_dir=args.run, comment=args.comment, alphabet=ALPHABET, learning_rate=args.learning_rate, verbose = args.verbose, resume_path=args.resume)
     trainer.run(train_dataloader, val_dataloader, num_epochs=args.epochs)

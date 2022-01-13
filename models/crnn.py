@@ -94,13 +94,21 @@ class ResnetExtracted(torch.nn.Module):
 
 class CRNN(nn.Module):
 
-    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
+    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False, dropout:bool=False):
         super(CRNN, self).__init__()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
-        self.rnn = nn.Sequential(
-            BidirectionalLSTM(512, nh, nh),
-            BidirectionalLSTM(nh, nh, nclass)
-        )
+        if dropout:
+            self.rnn = nn.Sequential(
+                BidirectionalLSTM(512, nh, nh),
+                nn.Dropout(p=0.2),
+                BidirectionalLSTM(nh, nh, nclass)
+            )
+        else:
+            self.rnn = nn.Sequential(
+                BidirectionalLSTM(512, nh, nh),
+                nn.Dropout(p=0.2),
+                BidirectionalLSTM(nh, nh, nclass)
+            )
 
     def forward(self, input):
         # conv features
