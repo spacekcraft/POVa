@@ -57,7 +57,7 @@ class Trainer(object):
             self.logger.info(f"Model and optimizer set. LR: {learning_rate}")
 
         self._model = self._model.to(self._device)
-        self._loss_fn = th.nn.CTCLoss(zero_infinity=True)
+        self._loss_fn = th.nn.CTCLoss(zero_infinity=True) # TODO zkusit false, pokud nejde zarovnat text a vystup site, tak tam nacpi nulu, kdyz je to true
         if self._verbose: print(f"Use loss_fn: CTCLoss\nComplete")
         self.logger.info(f"Use loss_fn: CTCLoss")
         self.logger.info(f"Complete")
@@ -212,7 +212,6 @@ class Trainer(object):
         # avoid alloc memory from gpu0
         
         if self.gpuid:
-            print("DBG")
             with th.cuda.device(self.gpuid[0]):
                 self._run(train_loader=train_loader, dev_loader=dev_loader, num_epochs=num_epochs)
         else:

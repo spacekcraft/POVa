@@ -1,18 +1,22 @@
 import argparse
+import os
 
-import torch
+import torch as th
 from torchvision.transforms import Lambda, Resize, Grayscale
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 from PIL import Image
 import numpy as np
+
+import pdb
 
 from models.crnn import CRNN
 from nnet.trainer import Trainer
 from nnet.dataloader import PeroDataset, make_dataloader, make_lmdb_dataloader
 from nnet.utils import StrLabelConverter
-from nnet.cwer import getCer, getWer
+from nnet.cwer import cer, wer
 from nnet.settings import (
     PERO_DATASET_PATH,
     PERO_ANNOTATIONS_PATH_TRAIN,
@@ -28,57 +32,60 @@ from nnet.settings import (
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Script for eval the model.')
-    parser.add_argument('--dataset', '-d', default="./pero/train.easy", type=str)
+    parser.add_argument('--alphabet', '-al', required=True, type=str)
+    parser.add_argument('--annotation', '-a', required=True, type=str)
+    parser.add_argument('--images', '-i', required=True, type=str)
     parser.add_argument('--samples', '-s', default=100, type=int)
+    parser.add_argument('--checkpoint', '-ch', required=True, type=str)
     args = parser.parse_args()
     return args
 
-
-def model_init(*args, pretrained=False):
-    if pretrained:
-        print("Loaded pretrained model")
-        return torch.load("best.pt.tar",map_location ='cpu')
-    return CRNN(*args)
-
-def load_model(*args):
-    nchanels, image_h, image_w = 1, 32, 512
-    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
-    checkpoint = model_init(args,pretrained=True)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
+def load_checkpoint(resume:str, model:th.nn.Module):
+        if not os.path.exists(resume):
+                raise FileNotFoundError(
+                    "Could not find resume checkpoint: {}".format(resume))
+        cpt = th.load(resume, map_location="cpu")
+        cur_epoch = cpt["epoch"]
+        print("Resume from checkpoint {}: epoch {:d}".format(
+            resume, cur_epoch))
+        # load nnet
+        model.load_state_dict(cpt["model_state_dict"])
+        return model
 
 def main():
     args = parse_args()
     
-    nchanels, image_h, image_w = 1, 32, 512
-
+    nchanels, image_h, image_w = 1, 48, 512
+    '''
     img_tranforms = torch.nn.Sequential(
             Resize((image_h, image_w)),
             Grayscale(nchanels),
-        )
+        )'''
 
-    dataset=PeroDataset(args.dataset,"./pero/lines",img_tranforms,False)
-    converter = StrLabelConverter(dataset._alphabet)
+    alphabet=PeroDataset(args.alphabet,args.images,None,False, width=1810).get_alphabet()
+    dataset=PeroDataset(args.annotation,args.images,None,False, width=1810)
+    converter = StrLabelConverter(alphabet)
+    NUMBER_OF_CLASSES = len(alphabet)
 
-    print("Dataset name:",args.dataset)
-    print("Alphabet:'"+dataset._alphabet+"'")
+    print("Dataset name:",args.annotation)
+    print("Alphabet:'"+alphabet+"'")
 
-    model = load_model(args)
-
+    model = CRNN(image_h, nchanels, NUMBER_OF_CLASSES, 256)
+    model = load_checkpoint(args.checkpoint, model)
+    print("LOADED!")
     val_string_targets = []
     predicted_strings_all = []
 
-    cer = 0
-    wer = 0 
-    num = 10
-
-    for i in range(num):
-        X,y=dataset.__getitem__(i)
+    sum_cer = 0
+    sum_wer = 0 
+    num = 0
+    for X, y in tqdm(dataset):
+        num+=1
         X = X.unsqueeze(0)
         pred = model(X)
         
         batch_size = X.shape[0]
-        preds_size = torch.LongTensor([pred.shape[0]] * batch_size)
+        preds_size = th.LongTensor([pred.shape[0]] * batch_size)
 
         _, preds = pred.max(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
@@ -87,21 +94,21 @@ def main():
         predicted_strings_all.extend(decoded_strings)
         val_string_targets.extend(y)
 
-        cerT=getCer(hyp=decoded_strings,ref=y)
-        werT=getWer(hyp=decoded_strings,ref=y)
+        cerT=cer(hypothesis=''.join(decoded_strings),reference=y)
+        werT=wer(hypothesis=''.join(decoded_strings),reference=y)
 
-        cer += cerT
-        wer += werT 
+        sum_cer += cerT
+        sum_wer += werT 
 
         print("------------------------------------------------------------------")
         print(decoded_strings," | ",y)
         print("------------------------------------------------------------------")
         print("WER:{wer:.2f}%  | CER:{cer:.2f}%".format(wer = werT*100, cer = cerT*100))
         print("------------------------------------------------------------------")
-        print()
 
-    print("TOTAL")
-    print("TOTAL WER:{wer:.2f}% TOTAL CER:{cer:.2f}%".format(wer = (wer/num)*100, cer = (cer/num)*100))
+
+        print("TOTAL")
+        print("TOTAL WER:{wer:.2f}% TOTAL CER:{cer:.2f}%".format(wer = (sum_wer/num)*100, cer = (sum_cer/num)*100))
 
     
     

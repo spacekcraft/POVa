@@ -63,6 +63,7 @@ class CustomCNN(nn.Module):
         cnn.add_module('pooling{0}'.format(3),
                        nn.MaxPool2d((2, 2), (2, 1), (0, 1)))  # 512x2x16
         convRelu(6, True)  # 512x1x16
+        cnn.add_module('adaptiveAvgPooling', nn.AdaptiveAvgPool2d((1,453)))
         self.cnn = cnn
 
     def forward(self, input):
@@ -93,21 +94,28 @@ class ResnetExtracted(torch.nn.Module):
 
 class CRNN(nn.Module):
 
-    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False):
+    def __init__(self, imgH, nc, nclass, nh, leakyRelu=False, dropout:bool=False):
         super(CRNN, self).__init__()
-        self.resnet = ResnetExtracted()
         self.cnn = CustomCNN(imgH, nc, nclass, nh, leakyRelu)
-        self.rnn = nn.Sequential(
-            BidirectionalLSTM(2048, nh, nh),
-            BidirectionalLSTM(nh, nh, nclass)
-        )
+        if dropout:
+            self.rnn = nn.Sequential(
+                BidirectionalLSTM(512, nh, nh),
+                nn.Dropout(p=0.2),
+                BidirectionalLSTM(nh, nh, nclass)
+            )
+        else:
+            self.rnn = nn.Sequential(
+                BidirectionalLSTM(512, nh, nh),
+                nn.Dropout(p=0.2),
+                BidirectionalLSTM(nh, nh, nclass)
+            )
 
     def forward(self, input):
         # conv features
         #conv = self.cnn(input.float())
-        conv = self.resnet(input.float()) #
+        conv = self.cnn(input.float()) #
         b, c, h, w = conv.size()
-        #assert h == 1, "the height of conv must be 1"
+        assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
         conv = conv.permute(2, 0, 1)  # [w, b, c]
         # rnn features
